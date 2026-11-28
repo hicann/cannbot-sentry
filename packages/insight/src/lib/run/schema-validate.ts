@@ -23,8 +23,10 @@ export interface BundleSchemaResult {
   errors: string[];
 }
 
-const TRUSTED_SCHEMA_SHA256 = '96e1849c164abed1163a08fef866c8c204caa70'
-  + 'a2812ed91c13ac38d8c9c8d07';
+const TRUSTED_SCHEMA_SHA256S = new Set([
+  '96e1849c164abed1163a08fef866c8c204caa70a2812ed91c13ac38d8c9c8d07',
+  'd8eba1abac8008a259dd3602b436b03816b1ed63c99439d13bf7321619063a0f',
+]);
 
 const validators = new Map<string, Ajv.ValidateFunction>();
 
@@ -54,7 +56,7 @@ export function validateWithBundleSchema(
   }
 
   const digest = createHash('sha256').update(schemaText, 'utf-8').digest('hex');
-  if (digest !== TRUSTED_SCHEMA_SHA256) {
+  if (!TRUSTED_SCHEMA_SHA256S.has(digest)) {
     return { ok: false, errors: ['workflow.schema.json 与 Insight 信任的 schema 哈希不一致'] };
   }
 

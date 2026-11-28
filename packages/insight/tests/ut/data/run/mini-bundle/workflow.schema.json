@@ -109,7 +109,7 @@
       "type": "object",
       "properties": {
         "type": { "enum": ["agent", "script"] },
-        "status": { "enum": ["passed", "failed", "running"] },
+        "status": { "enum": ["passed", "failed", "running", "stopped"] },
         "reason": { "type": "string" }
       },
       "additionalProperties": true

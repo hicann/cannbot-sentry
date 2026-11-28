@@ -18,6 +18,7 @@ export const RUN_STATUS_META: Record<string, RunStatusMeta> = {
   passed: { label: "通过", color: "#1a7f37" },
   failed: { label: "失败", color: "#cf222e" },
   running: { label: "运行中", color: "#9a6700" },
+  stopped: { label: "已停止", color: "#6e7781" },
   pending: { label: "待定", color: "#8c959f" },
   carried: { label: "承接", color: "#1b7c83" },
   unknown: { label: "未知", color: "#57606a" },

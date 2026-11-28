@@ -39,7 +39,7 @@ export interface TurnsNodeSession {
 
 export interface TurnsNodeAttempt {
   ordinal: number;
-  status: string;
+  status: NodeStatus;
   verification: { type: string; status: string; reason: string | null };
   outputText: string | null;
   execute: TurnsNodeSession | null;
@@ -120,6 +120,7 @@ export const STATUS_DOT: Record<NodeStatus, string> = {
   passed: "bg-emerald-500",
   failed: "bg-red-500",
   running: "bg-amber-500 animate-pulse",
+  stopped: "bg-slate-500",
   pending: "bg-foreground/25",
   carried: "bg-sky-400",
   unknown: "bg-foreground/25",
@@ -1026,7 +1027,7 @@ function NodeBody({ node, expandedSessions, memberData, bridges, selectedTurnId,
             {multiAttempt && (
               <div className="flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
                 <span className="font-medium text-foreground/70">尝试 {a.ordinal}</span>
-                <span className={cn("size-1.5 rounded-full", a.status === "passed" ? "bg-emerald-500" : a.status === "failed" ? "bg-red-500" : a.status === "running" ? "bg-amber-500 animate-pulse" : "bg-foreground/25")} />
+                <span className={cn("size-1.5 rounded-full", STATUS_DOT[a.status])} />
                 <span className="tabular-nums">{a.status}</span>
                 <span>· 验收 {a.verification.status}</span>
                 {a.verification.reason && <span className="min-w-0 truncate" title={a.verification.reason}>· {a.verification.reason}</span>}

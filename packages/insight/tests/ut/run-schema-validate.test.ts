@@ -20,6 +20,7 @@ import { buildIndex } from '@/lib/run/reader';
 import { buildViewModel, findNodeInstance } from '@/lib/run/view-model';
 
 const SCHEMA_SRC = path.resolve(__dirname, './data/run/workflow-bundle.v1.schema.json');
+const LEGACY_SCHEMA_SRC = path.resolve(__dirname, './data/run/workflow-bundle.v1.legacy-schema.json');
 const OPSBOT_FIXTURE = path.resolve(__dirname, './data/run/opsbot-workflow-minimal.json');
 
 function makeBundle(files: Record<string, string>): string {
@@ -41,6 +42,7 @@ function validManifest(): Record<string, unknown> {
 }
 
 const SCHEMA_TEXT = fs.readFileSync(SCHEMA_SRC, 'utf-8');
+const LEGACY_SCHEMA_TEXT = fs.readFileSync(LEGACY_SCHEMA_SRC, 'utf-8');
 
 describe('validateWithBundleSchema', () => {
   it('schema 文件可信但 manifest.schema 错误时由 JSON Schema 拒绝', () => {
@@ -132,6 +134,95 @@ describe('validateBundleDir 集成', () => {
       const result = validateBundleDir(dir);
       expect(result.ok).toBe(true);
       expect(buildIndex(result.manifest!).relations.map(r => r.raw.type)).toEqual(['handoff']);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(['passed', 'failed', 'running', 'stopped'])(
+    '当前 schema 接受 reviewer/verifier 验收状态 %s',
+    (status: string) => {
+      const manifest = validManifest();
+      (manifest.data as { members: unknown[] }).members = [{
+        id: 'm_verify', kind: 'process', name: 'reviewer', startedAt: null, finishedAt: null,
+        nodeId: 'n', generation: 0, attempt: 1,
+        verification: { type: 'agent', status },
+      }];
+      const dir = makeBundle({
+        'workflow.json': JSON.stringify(manifest),
+        'workflow.schema.json': SCHEMA_TEXT,
+      });
+      try {
+        expect(validateBundleDir(dir)).toMatchObject({ ok: true });
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('旧 schema 哈希仍可信，既有 bundle 导入不回退', () => {
+    const manifest = validManifest();
+    (manifest.data as { members: unknown[] }).members = [{
+      id: 'm_verify', kind: 'process', name: 'reviewer', startedAt: null, finishedAt: null,
+      nodeId: 'n', generation: 0, attempt: 1,
+      verification: { type: 'agent', status: 'passed' },
+    }];
+    const dir = makeBundle({
+      'workflow.json': JSON.stringify(manifest),
+      'workflow.schema.json': LEGACY_SCHEMA_TEXT,
+    });
+    try {
+      expect(validateBundleDir(dir)).toMatchObject({ ok: true });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('旧 schema 仍拒绝 stopped，验证哈希 allowlist 未放宽任意 schema', () => {
+    const manifest = validManifest();
+    (manifest.data as { members: unknown[] }).members = [{
+      id: 'm_verify', kind: 'process', name: 'reviewer', startedAt: null, finishedAt: null,
+      nodeId: 'n', generation: 0, attempt: 1,
+      verification: { type: 'agent', status: 'stopped' },
+    }];
+    const dir = makeBundle({
+      'workflow.json': JSON.stringify(manifest),
+      'workflow.schema.json': LEGACY_SCHEMA_TEXT,
+    });
+    try {
+      expect(validateBundleDir(dir)).toMatchObject({
+        ok: false,
+        status: 400,
+        reason: 'bundle-manifest-schema-invalid',
+      });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ['succeeded'],
+    ['failed'],
+  ])('执行侧有 %s 结论但验收 stopped 时 attempt 仍显示 stopped', (attemptResult: string) => {
+    const manifest = JSON.parse(fs.readFileSync(OPSBOT_FIXTURE, 'utf-8')) as {
+      data: { members: Array<{ id: string; attemptResult?: string; verification?: Record<string, unknown> }> };
+    };
+    const execute = manifest.data.members.find(member => member.id === 's_exec')!;
+    execute.attemptResult = attemptResult;
+    const reviewer = manifest.data.members.find(member => member.id === 's_verify')!;
+    reviewer.verification = { type: 'agent', status: 'stopped' };
+    const dir = makeBundle({
+      'workflow.json': JSON.stringify(manifest),
+      'workflow.schema.json': SCHEMA_TEXT,
+    });
+    try {
+      const result = validateBundleDir(dir);
+      expect(result.ok).toBe(true);
+      const view = buildViewModel(buildIndex(result.manifest!));
+      const node = findNodeInstance(view, 'build', 0)!;
+      expect(node.attempts[0].status).toBe('stopped');
+      expect(node.attempts[0].verification.status).toBe('stopped');
+      expect(node.status).toBe('stopped');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

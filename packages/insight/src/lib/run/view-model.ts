@@ -37,7 +37,7 @@ export interface SessionMemberRef {
 
 export interface AttemptRecord {
   ordinal: number;             // 本代第几次尝试（1 起）
-  status: 'passed' | 'failed' | 'running' | 'unknown';
+  status: 'passed' | 'failed' | 'running' | 'stopped' | 'unknown';
   startedAt: string | null;
   finishedAt: string | null;
   outputText: string | null;   // process 成员的 Bash 输出（可能截断）
@@ -46,7 +46,7 @@ export interface AttemptRecord {
   verifyMember: SessionMemberRef | null;
 }
 
-export type NodeStatus = 'passed' | 'failed' | 'running' | 'pending' | 'carried' | 'unknown';
+export type NodeStatus = 'passed' | 'failed' | 'running' | 'stopped' | 'pending' | 'carried' | 'unknown';
 
 export interface NodeInstance {
   key: string;                 // `n-<nodeId>-g<generation>`
@@ -156,11 +156,13 @@ function memberRef(m: IndexedMember, role: MemberRole): SessionMemberRef {
 }
 
 function attemptStatus(execute: IndexedMember, verify: IndexedMember | undefined): AttemptRecord['status'] {
+  // 验收被停止即本轮无结论：即使执行侧已有 succeeded/failed，也优先显示 stopped
+  const verificationStatus = verify?.graph?.verification?.status;
+  if (verificationStatus === 'stopped') return 'stopped';
   const result = execute.graph?.attemptResult;
   if (result === 'succeeded') return 'passed';
   if (result === 'failed') return 'failed';
-  // 无最终结论：验收 running 或成员已开始未结束 → 运行中（原型为 unknown 的增强）
-  if (verify?.graph?.verification?.status === 'running') return 'running';
+  if (verificationStatus === 'running') return 'running';
   if (execute.member.startedAt && !execute.member.finishedAt) return 'running';
   return 'unknown';
 }
@@ -984,9 +986,11 @@ export function buildViewModel(index: RunIndex): RunViewModel {
     ? 'running'
     : statuses.includes('failed')
       ? 'failed'
-      : statuses.some(s => s === 'passed' || s === 'carried')
-        ? 'passed'
-        : 'unknown';
+      : statuses.includes('stopped')
+        ? 'stopped'
+        : statuses.some(s => s === 'passed' || s === 'carried')
+          ? 'passed'
+          : 'unknown';
 
   return {
     runId: index.runId,
