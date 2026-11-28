@@ -7,6 +7,9 @@
 // INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 // See LICENSE in the root of the software repository for the full text of the License.
 
+// Overview 组合面板（单一源，run 形状）：run 是基本单元——本面板渲染「一个
+// 执行单元」的总览（总览头 / Agent 泳道图 V2 / Skills / Tool Calls /
+// Error Turns），不感知 session/run 之分：线上工作台（RunOverviewTab，run 级
 // 端点取数，solo = 单成员退化）与离线导出（run 工作台自身即查看器，离线
 // 内核按档案应答同一 run 端点）同源消费，展示零复制。
 // 总览头 = 身份 + Σ指标一体：标题位（run 详情 = identity.run 下放身份

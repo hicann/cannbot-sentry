@@ -7,6 +7,9 @@
 // INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 // See LICENSE in the root of the software repository for the full text of the License.
 
+// Run Overview tab（统一，run-first）：run 是基本单元——一律 run 级端点取数
+// （executions / turns / skills 全部不带 member，跨成员混切），solo run =
+// 单成员退化，bundle run = N 成员常态，零 kind 分支的数据路径。
 // 面板复用 OverviewPanels（单元总览单一源：总览头[身份+Σ大瓦片]/Skills/
 // Tool Calls/Error Turns，与离线导出 viewer 同源）；时间维度（Agent 泳道）
 // 归 Perf 页执行时间线，Overview 不再承载；bundle 专属的结构卡（代际/回滚/

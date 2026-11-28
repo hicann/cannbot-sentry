@@ -6,6 +6,9 @@
 // INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 // See LICENSE in the root of the software repository for the full text of the License.
 
+// codex 会话双路径集成测试（真机核实的 wire 形状，修复回归锁）：
+//   捕获路径（cpx codex-emitter → claude 布局 → claude-jsonl adapter）：
+//     1. exec_command cat SKILL.md → SkillEvent（此前 codex 无 Read 工具、
 //        检测只认 Read → Skills 面板恒空，真机实测模型真实调用技能但 0 事件）
 //     2. tool_use 行 ts < tool_result 行 ts → 工具时长非 0（此前
 //        completedAt 含 dump I/O 尾段开销，与下一轮 receivedAt 倒挂 →
